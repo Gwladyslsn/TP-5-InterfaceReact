@@ -1,11 +1,14 @@
 info:
-  name: PATCH
+  name: GET
   type: http
   seq: 1
 
 http:
-  method: PATCH
-  url: http://localhost:3000
+  method: GET
+  url: http://localhost:3000/tasks
+  body:
+    type: json
+    data: ""
   auth: inherit
 
 settings:

@@ -3,11 +3,11 @@ const { Pool } = require('pg');
 const app = express();
 const port = 3000;
 const pool = new Pool({
-    host: process.env.db_host,
-    database: process.env.db_name,
-    user: process.env.db_user,
-    password: process.env.db_password,
-    port: process.env.db_port || 5432
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT || 5432
 });
 
 app.use(express.json());
@@ -18,7 +18,7 @@ app.get('/', (req, res) => {
 
 // Routes API
 
-app.post('/api/tasks', async (req, res) => {
+app.post('/tasks', async (req, res) => {
     const { complété = false, titre } = req.body;
     const result = await pool.query(
         'INSERT INTO tasks (status_task, title_task) VALUES ($1, $2) RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
@@ -31,7 +31,7 @@ app.post('/api/tasks', async (req, res) => {
     });
 });
 
-app.get('/api/tasks', async (req, res) => {
+app.get('/tasks', async (req, res) => {
     const result = await pool.query(
         'SELECT id_task AS id, status_task AS "complété", title_task AS titre FROM tasks ORDER BY id_task'
     );
@@ -42,7 +42,7 @@ app.get('/api/tasks', async (req, res) => {
     });
 });
 
-app.put('/api/tasks/:id', async (req, res) => {
+app.put('/tasks/:id', async (req, res) => {
     const { complété, titre } = req.body;
     const result = await pool.query(
         'UPDATE tasks SET status_task = $1, title_task = $2 WHERE id_task = $3 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
@@ -59,7 +59,7 @@ app.put('/api/tasks/:id', async (req, res) => {
     });
 });
 
-app.delete('/api/tasks/:id', async (req, res) => {
+app.delete('/tasks/:id', async (req, res) => {
     const result = await pool.query(
         'DELETE FROM tasks WHERE id_task = $1 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
         [req.params.id]
@@ -76,7 +76,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
 });
 
 // Fonctionnalité A : marquer une tache complétée
-app.patch('/api/tasks/:id', async (req, res) => {
+app.patch('/tasks/:id', async (req, res) => {
     const result = await pool.query(
         'UPDATE tasks SET status_task = TRUE WHERE id_task = $1 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
         [req.params.id]
