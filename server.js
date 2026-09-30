@@ -1,6 +1,14 @@
 const express = require('express');
+const { Pool } = require('pg');
 const app = express();
 const port = 3000;
+const pool = new Pool({
+    host: process.env.db_host,
+    database: process.env.db_name,
+    user: process.env.db_user,
+    password: process.env.db_password,
+    port: process.env.db_port || 5432
+});
 
 app.use(express.json());
 
@@ -8,75 +16,82 @@ app.get('/', (req, res) => {
     res.send('Hello World!!');
 });
 
-app.listen(port, () => {
-    console.log(`serveur sur http://localhost:${port}`);
-})
-
 // Routes API
 
-app.post('/api/tasks', (req, res) => {
-    const newTask = req.body;
-    MyTasks.push(newTask);
+app.post('/api/tasks', async (req, res) => {
+    const { complété = false, titre } = req.body;
+    const result = await pool.query(
+        'INSERT INTO tasks (status_task, title_task) VALUES ($1, $2) RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
+        [complété, titre]
+    );
 
-    console.log("Task : ", newTask)
     res.status(201).json({
         message: 'Post ok',
-        task: newTask
+        task: result.rows[0]
     });
 });
 
-app.get('/api/tasks', (req, res) => {
-    console.log("Task : ", MyTasks)
+app.get('/api/tasks', async (req, res) => {
+    const result = await pool.query(
+        'SELECT id_task AS id, status_task AS "complété", title_task AS titre FROM tasks ORDER BY id_task'
+    );
+
     res.status(200).json({
         message: 'Get ok',
-        task: MyTasks
+        task: result.rows
     });
 });
 
-app.put('/api/tasks/:id', (req, res) => {
-    const taskID = req.params.id;
-    const putTask = req.body;
-    const task = MyTasks.find(task => task.id === Number(taskID))
+app.put('/api/tasks/:id', async (req, res) => {
+    const { complété, titre } = req.body;
+    const result = await pool.query(
+        'UPDATE tasks SET status_task = $1, title_task = $2 WHERE id_task = $3 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
+        [complété, titre, req.params.id]
+    );
 
-    task.id = req.body;
-    task.complété = req.body;
-    task.titre = req.body;
+    if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'Task not found' });
+    }
 
     res.status(200).json({
         message: 'Put ok',
-        task: task
+        task: result.rows[0]
     });
 });
 
-app.delete('/api/tasks/:id', (req, res) => {
-    const taskID = req.params.id;
-    const task = MyTasks.findIndex(task => task.id === Number(taskID))
-    MyTasks.splice(task, 1);
+app.delete('/api/tasks/:id', async (req, res) => {
+    const result = await pool.query(
+        'DELETE FROM tasks WHERE id_task = $1 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
+        [req.params.id]
+    );
+
+    if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'Task not found' });
+    }
 
     res.status(200).json({
         message: 'Delete ok',
-        task: task
+        task: result.rows[0]
     });
-})
+});
 
 // Fonctionnalité A : marquer une tache complétée
-app.patch('/api/tasks/:id', (req, res) => {
-    const taskID = req.params.id;
-    const task = MyTasks.findIndex(task => task.id === Number(taskID))
+app.patch('/api/tasks/:id', async (req, res) => {
+    const result = await pool.query(
+        'UPDATE tasks SET status_task = TRUE WHERE id_task = $1 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
+        [req.params.id]
+    );
 
+    if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'Task not found' });
+    }
 
     res.status(200).json({
         message: 'tache complétée',
-        task: task
+        task: result.rows[0]
     });
-})
+});
 
-// Tableau
-
-const MyTasks = [
-    { id: 0, complété: false, titre: "monter" },
-    { id: 1, complété: false, titre: "up" },
-    { id: 2, complété: false, titre: "down" },
-    { id: 3, complété: false, titre: "boom" },
-    { id: 4, complété: false, titre: "bam" }
-];
+app.listen(port, () => {
+    console.log(`serveur sur http://localhost:${port}`);
+});
