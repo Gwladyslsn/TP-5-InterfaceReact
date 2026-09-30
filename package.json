@@ -1,19 +1,20 @@
 {
-  "name": "tp3",
+  "name": "api",
   "version": "1.0.0",
-  "description": "TP3",
+  "description": "TP5",
   "repository": {
     "type": "git",
-    "url": "TP3"
+    "url": "TP5"
   },
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node app.js"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "pg": "^8.23.0"
   }
 }
