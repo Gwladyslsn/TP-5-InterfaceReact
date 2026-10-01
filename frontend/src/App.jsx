@@ -1,121 +1,115 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react'
+
+const API_URL = import.meta.env.VITE_API_URL
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [tasks, setTasks] = useState([])
+  const [title, setTitle] = useState('')
+  const [volunteer, setVolunteer] = useState('')
+  const [error, setError] = useState(null)         // erreur de chargement
+  const [formError, setFormError] = useState(null) // erreur du formulaire
+
+  async function loadTasks() {
+    try {
+      const res = await fetch(`${API_URL}/tasks`)
+      if (!res.ok) throw new Error(`Erreur ${res.status}`)
+      const json = await res.json()
+      setTasks(json.task)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  useEffect(() => {
+    loadTasks()
+  }, [])
+
+  // Ajouter une tâche (POST /tasks)
+  async function addTask(e) {
+    e.preventDefault()
+    setFormError(null)
+
+    // Le titre est obligatoire
+    if (!title.trim()) {
+      setFormError('Le titre est obligatoire.')
+      return
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/tasks`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titre: title.trim(),
+          benevole: volunteer.trim(),
+        }),
+      })
+
+      if (!res.ok) {
+        // l'API peut aussi refuser (ex. 400) : on affiche son message
+        const json = await res.json().catch(() => ({}))
+        throw new Error(json.message || `Erreur ${res.status}`)
+      }
+
+      setTitle('')
+      setVolunteer('')
+      loadTasks()
+    } catch (err) {
+      setFormError(err.message)
+    }
+  }
+
+  async function toggleTask(task) {
+    await fetch(`${API_URL}/tasks/${task.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...task, complété: !task.complété }),
+    })
+    loadTasks()
+  }
+
+  async function deleteTask(id) {
+    await fetch(`${API_URL}/tasks/${id}`, { method: 'DELETE' })
+    loadTasks()
+  }
+
+  if (error) return <p>Erreur : {error}</p>
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div>
+      <h1>Mes tâches</h1>
 
-      <div className="ticks"></div>
+      <form onSubmit={addTask}>
+        <input
+          value={volunteer}
+          onChange={(e) => setVolunteer(e.target.value)}
+          placeholder="Nom du bénévole"
+        />
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Titre de la tâche (obligatoire)"
+          required
+        />
+        <button type="submit">Ajouter</button>
+        {formError && <p style={{ color: 'red' }}>{formError}</p>}
+      </form>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <ul>
+        {tasks.map((task) => (
+          <li key={task.id}>
+            <input
+              type="checkbox"
+              checked={task.complété}
+              onChange={() => toggleTask(task)}
+            />
+            {task.titre}
+            {task.benevole && <em> (bénévole : {task.benevole})</em>}
+            <button onClick={() => deleteTask(task.id)}>Supprimer</button>
+          </li>
+        ))}
+      </ul>
+    </div>
   )
 }
 
