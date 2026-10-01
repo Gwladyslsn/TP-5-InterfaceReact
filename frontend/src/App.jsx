@@ -14,7 +14,6 @@ async function fetchTasks() {
   const res = await fetch(`${API_URL}/tasks`)
   if (!res.ok) throw new Error(`Erreur ${res.status}`)
   const json = await res.json()
-console.log(json.task)
   return json.task
 }
 
