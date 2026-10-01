@@ -6,12 +6,14 @@ Application web permettant à une association de suivre ses tâches et de savoir
 
 Projet réalisé dans le cadre du TP5. L'interface est conçue pour être accessible (labels associés, navigation au clavier, annonces pour lecteurs d'écran, lien d'évitement).  
 
-Technologies :  
+![alt text](image-1.png)
+
+## Technologies :  
 React + Vite  
 ESLint  
 API REST (backend séparé) 
 
-Installation :  
+## Installation :  
 bash  
 npm install  
 npm install -D eslint-plugin-jsx-a11y --legacy-peer-deps   # si conflit de peer dependencies avec ESLint 10  
@@ -22,14 +24,16 @@ VITE_API_URL=http://localhost:3000
 
 (adapter l'URL à celle de ton API).  
 
-Commandes : 
+## Commandes : 
 Commande	--> Rôle
 npm run dev	--> Lance le serveur de développement  
 npm run build --> Génère la version de production  
 npm run lint --> Analyse le code  
 
+![alt text](image.png)
 
-Données de l'API
+
+## Données de l'API
 
 Chaque tâche contient :  
 
@@ -38,6 +42,30 @@ id --> Identifiant de la tâche
 titre --> Titre de la tâche (obligatoire)  
 assignee --> Prénom du bénévole assigné (facultatif)  
 complété --> Indique si la tâche est terminée  
+
+## Questions
+
+### Pourquoi aucune variable `VITE_` ne contient de secret ?  
+Vite injecte les variables préfixées `VITE_` dans le bundle JavaScript au moment
+du build. Le code est ensuite envoyé au navigateur : n'importe qui peut le lire
+(onglet Sources, outils de développement). Une variable `VITE_` est donc publique
+par nature. Les secrets (mot de passe de la base, `DATABASE_URL`, clés d'API)
+restent côté serveur, dans des variables d'environnement (Heroku Config Vars,
+fichier `.env` ignoré par Git), et ne sont jamais préfixés `VITE_`.
+
+### Pourquoi la validation du frontend ne suffit pas ?  
+La validation côté client améliore l'expérience (retour immédiat à
+l'utilisateur), mais elle est contournable : on peut modifier le code dans le
+navigateur, désactiver le JavaScript ou appeler l'API directement (curl,
+Postman) sans passer par l'interface. Le serveur ne doit donc jamais faire
+confiance aux données reçues : il revalide tout (types, longueurs, formats) et
+utilise des requêtes paramétrées pour se protéger des injections SQL.
+
+### Pourquoi l'application n'a pas besoin de bandeau cookies ?  
+L'application ne dépose aucun cookie ni traceur non essentiel : pas de
+publicité, pas d'analytics, pas de suivi tiers. Le consentement n'est exigé que
+pour ces traceurs. Les données strictement nécessaires au fonctionnement
+(par exemple une session d'authentification) sont exemptées de consentement.
   
   
 Protection des données personnelles  
