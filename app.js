@@ -1,14 +1,21 @@
 const express = require('express');
 const { Pool } = require('pg');
 const app = express();
-const port = 3000;
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`serveur sur le port ${PORT}`);
+});
 const pool = new Pool({
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT || 5432
+    port: process.env.DB_PORT || 5432,
+    ssl: { rejectUnauthorized: false },
 });
+
+
+module.exports = pool;
 
 app.use(express.json());
 
@@ -101,6 +108,6 @@ app.patch('/tasks/:id', async (req, res) => {
 
 
 
-app.listen(port, () => {
-    console.log(`serveur sur http://localhost:${port}`);
+app.listen(PORT, () => {
+    console.log(`serveur sur http://localhost:${PORT}`);
 });

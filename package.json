@@ -11,7 +11,8 @@
   "type": "commonjs",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "build": "react-scripts build"
   },
   "dependencies": {
     "cors": "^2.8.6",
