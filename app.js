@@ -12,6 +12,13 @@ const pool = new Pool({
 
 app.use(express.json());
 
+// server.js (API)
+const cors = require('cors');
+// Seul le frontend a le droit d'appeler l'API depuis un navigateur
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+}));
+
 app.get('/', (req, res) => {
     res.send('Hello World!!');
 });
