@@ -33,11 +33,11 @@ Données de l'API
 
 Chaque tâche contient :  
 
-Champ --> Description
-id --> Identifiant de la tâche
-titre --> Titre de la tâche (obligatoire)
-assignee --> Prénom du bénévole assigné (facultatif)
-complété --> Indique si la tâche est terminée
+Champ --> Description  
+id --> Identifiant de la tâche  
+titre --> Titre de la tâche (obligatoire)  
+assignee --> Prénom du bénévole assigné (facultatif)  
+complété --> Indique si la tâche est terminée  
   
   
 Protection des données personnelles  
