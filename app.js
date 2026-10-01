@@ -26,10 +26,10 @@ app.get('/', (req, res) => {
 // Routes API
 
 app.post('/tasks', async (req, res) => {
-    const { complété = false, titre } = req.body;
+    const { complété = false, titre, assignee } = req.body;
     const result = await pool.query(
-        'INSERT INTO tasks (status_task, title_task) VALUES ($1, $2) RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
-        [complété, titre]
+        'INSERT INTO tasks (status_task, title_task, assignee) VALUES ($1, $2, $3) RETURNING id_task AS id, status_task AS "complété", title_task AS titre, assignee',
+        [complété, titre, assignee]
     );
 
     res.status(201).json({
@@ -40,7 +40,7 @@ app.post('/tasks', async (req, res) => {
 
 app.get('/tasks', async (req, res) => {
     const result = await pool.query(
-        'SELECT id_task AS id, status_task AS "complété", title_task AS titre FROM tasks ORDER BY id_task'
+        'SELECT id_task AS id, status_task AS "complété", title_task AS titre, assignee FROM tasks ORDER BY id_task'
     );
 
     res.status(200).json({
@@ -50,10 +50,10 @@ app.get('/tasks', async (req, res) => {
 });
 
 app.put('/tasks/:id', async (req, res) => {
-    const { complété, titre } = req.body;
+    const { complété, titre, assignee } = req.body;
     const result = await pool.query(
-        'UPDATE tasks SET status_task = $1, title_task = $2 WHERE id_task = $3 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
-        [complété, titre, req.params.id]
+        'UPDATE tasks SET status_task = $1, title_task = $2, assignee = $3 WHERE id_task = $4 RETURNING id_task AS id, status_task AS "complété", title_task AS titre, assignee',
+        [complété, titre, assignee, req.params.id]
     );
 
     if (result.rowCount === 0) {
@@ -68,7 +68,7 @@ app.put('/tasks/:id', async (req, res) => {
 
 app.delete('/tasks/:id', async (req, res) => {
     const result = await pool.query(
-        'DELETE FROM tasks WHERE id_task = $1 RETURNING id_task AS id, status_task AS "complété", title_task AS titre',
+        'DELETE FROM tasks WHERE id_task = $1 RETURNING id_task AS id, status_task AS "complété", title_task AS titre, assignee AS assignee',
         [req.params.id]
     );
 
@@ -99,20 +99,7 @@ app.patch('/tasks/:id', async (req, res) => {
     });
 });
 
-// Benevoles
 
-app.post('/benevoles', async (req, res) => {
-    const { nom_benevole } = req.body;
-    const result = await pool.query(
-        'INSERT INTO benevole (nom_benevole) VALUES ($1) RETURNING id_benevole AS id, nom_benevole AS nom',
-        [nom_benevole]
-    );
-
-    res.status(201).json({
-        message: 'Post ok',
-        task: result.rows[0]
-    });
-});
 
 app.listen(port, () => {
     console.log(`serveur sur http://localhost:${port}`);

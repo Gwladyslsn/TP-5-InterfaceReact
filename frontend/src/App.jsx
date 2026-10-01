@@ -14,13 +14,14 @@ async function fetchTasks() {
   const res = await fetch(`${API_URL}/tasks`)
   if (!res.ok) throw new Error(`Erreur ${res.status}`)
   const json = await res.json()
+console.log(json.task)
   return json.task
 }
 
 function App() {
   const [tasks, setTasks] = useState([])
   const [title, setTitle] = useState('')
-  const [volunteer, setVolunteer] = useState('')
+  const [assignee, setAssignee] = useState('')
   const [filter, setFilter] = useState('all')
   const [error, setError] = useState(null)
   const [formError, setFormError] = useState(null)
@@ -66,7 +67,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           titre: title.trim(),
-          benevole: volunteer.trim(),
+          assignee: assignee.trim() || null,
         }),
       })
       if (!res.ok) {
@@ -74,7 +75,7 @@ function App() {
         throw new Error(json.message || `Erreur ${res.status}`)
       }
       setTitle('')
-      setVolunteer('')
+      setAssignee('')
       loadTasks()
     } catch (err) {
       setFormError(err.message)
@@ -86,6 +87,16 @@ function App() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...task, complété: !task.complété }),
+    })
+    loadTasks()
+  }
+
+  // Efface le nom du bénévole sans supprimer la tâche
+  async function removeVolunteer(task) {
+    await fetch(`${API_URL}/tasks/${task.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...task, assignee: null }),
     })
     loadTasks()
   }
@@ -124,8 +135,6 @@ function App() {
 
   return (
     <>
-      <a className="skip-link" href="#main">Aller au contenu principal</a>
-
       <main className="app" id="main">
         <h1>Mes tâches</h1>
 
@@ -135,12 +144,12 @@ function App() {
 
           <form onSubmit={addTask} noValidate>
             <div className="field">
-              <label htmlFor="volunteer">Nom du bénévole</label>
+              <label htmlFor="assignee">Nom du bénévole</label>
               <input
-                id="volunteer"
+                id="assignee"
                 type="text"
-                value={volunteer}
-                onChange={(e) => setVolunteer(e.target.value)}
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
                 autoComplete="name"
               />
             </div>
@@ -159,6 +168,12 @@ function App() {
                 aria-describedby={formError ? 'form-error' : undefined}
               />
             </div>
+
+            <p className="hint">
+              Le prénom saisi sert uniquement à savoir quel bénévole s’occupe de la tâche. Il est
+              supprimé en même temps que la tâche. Pour le faire retirer plus tôt :
+              contact@association.example
+            </p>
 
             {formError && (
               <p id="form-error" className="message-error" role="alert">
@@ -209,11 +224,21 @@ function App() {
                   />
                   <label htmlFor={`task-${task.id}`} className="task-label">
                     <span className="task-title">{task.titre}</span>
-                    {task.benevole && (
-                      <span className="task-volunteer">Bénévole : {task.benevole}</span>
+                    {task.assignee && (
+                      <span className="task-volunteer">Bénévole : {task.assignee}</span>
                     )}
                     {task.complété && <span className="sr-only"> (terminée)</span>}
                   </label>
+                  {task.assignee && (
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => removeVolunteer(task)}
+                      aria-label={`Retirer le bénévole ${task.assignee} de la tâche ${task.titre}`}
+                    >
+                      Retirer le bénévole
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn-danger"
