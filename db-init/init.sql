@@ -7,7 +7,3 @@ CREATE TABLE IF NOT EXISTS tasks (
     title_task     VARCHAR(100) NOT NULL
 );
 
-INSERT INTO tasks (status_task, title_task) VALUES
-    (FALSE, 'ranger'),
-    (FALSE, 'nettoyer'),
-    (FALSE, 'dormir')

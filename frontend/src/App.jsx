@@ -1,37 +1,62 @@
 import { useEffect, useState } from 'react'
+import './App.css'
 
 const API_URL = import.meta.env.VITE_API_URL
+
+const FILTERS = [
+  { value: 'all', label: 'Toutes' },
+  { value: 'done', label: 'Complétées' },
+  { value: 'todo', label: 'Non complétées' },
+]
+
+// Hors du composant : récupère les données, ne touche à aucun état
+async function fetchTasks() {
+  const res = await fetch(`${API_URL}/tasks`)
+  if (!res.ok) throw new Error(`Erreur ${res.status}`)
+  const json = await res.json()
+  return json.task
+}
 
 function App() {
   const [tasks, setTasks] = useState([])
   const [title, setTitle] = useState('')
   const [volunteer, setVolunteer] = useState('')
-  const [error, setError] = useState(null)         // erreur de chargement
-  const [formError, setFormError] = useState(null) // erreur du formulaire
+  const [filter, setFilter] = useState('all')
+  const [error, setError] = useState(null)
+  const [formError, setFormError] = useState(null)
 
+  // Pour recharger la liste après ajout / modification / suppression
   async function loadTasks() {
     try {
-      const res = await fetch(`${API_URL}/tasks`)
-      if (!res.ok) throw new Error(`Erreur ${res.status}`)
-      const json = await res.json()
-      setTasks(json.task)
+      setTasks(await fetchTasks())
     } catch (err) {
       setError(err.message)
     }
   }
 
+  // Chargement initial
   useEffect(() => {
-    loadTasks()
+    let ignore = false
+
+    fetchTasks()
+      .then((data) => {
+        if (!ignore) setTasks(data)
+      })
+      .catch((err) => {
+        if (!ignore) setError(err.message)
+      })
+
+    return () => {
+      ignore = true
+    }
   }, [])
 
-  // Ajouter une tâche (POST /tasks)
   async function addTask(e) {
     e.preventDefault()
     setFormError(null)
 
-    // Le titre est obligatoire
     if (!title.trim()) {
-      setFormError('Le titre est obligatoire.')
+      setFormError('Le titre de la tâche est obligatoire.')
       return
     }
 
@@ -44,13 +69,10 @@ function App() {
           benevole: volunteer.trim(),
         }),
       })
-
       if (!res.ok) {
-        // l'API peut aussi refuser (ex. 400) : on affiche son message
         const json = await res.json().catch(() => ({}))
         throw new Error(json.message || `Erreur ${res.status}`)
       }
-
       setTitle('')
       setVolunteer('')
       loadTasks()
@@ -73,43 +95,140 @@ function App() {
     loadTasks()
   }
 
-  if (error) return <p>Erreur : {error}</p>
+  // ----- Filtre -----
+  const counts = {
+    all: tasks.length,
+    done: tasks.filter((t) => t.complété).length,
+    todo: tasks.filter((t) => !t.complété).length,
+  }
+
+  const visibleTasks = tasks.filter((t) => {
+    if (filter === 'done') return t.complété
+    if (filter === 'todo') return !t.complété
+    return true
+  })
+
+  const emptyMessages = {
+    all: 'Aucune tâche pour le moment.',
+    done: 'Aucune tâche complétée.',
+    todo: 'Aucune tâche à faire : tout est terminé !',
+  }
+
+  if (error) {
+    return (
+      <main className="app">
+        <p className="message-error" role="alert">Erreur : {error}</p>
+      </main>
+    )
+  }
 
   return (
-    <div>
-      <h1>Mes tâches</h1>
+    <>
+      <a className="skip-link" href="#main">Aller au contenu principal</a>
 
-      <form onSubmit={addTask}>
-        <input
-          value={volunteer}
-          onChange={(e) => setVolunteer(e.target.value)}
-          placeholder="Nom du bénévole"
-        />
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Titre de la tâche (obligatoire)"
-          required
-        />
-        <button type="submit">Ajouter</button>
-        {formError && <p style={{ color: 'red' }}>{formError}</p>}
-      </form>
+      <main className="app" id="main">
+        <h1>Mes tâches</h1>
 
-      <ul>
-        {tasks.map((task) => (
-          <li key={task.id}>
-            <input
-              type="checkbox"
-              checked={task.complété}
-              onChange={() => toggleTask(task)}
-            />
-            {task.titre}
-            {task.benevole && <em> (bénévole : {task.benevole})</em>}
-            <button onClick={() => deleteTask(task.id)}>Supprimer</button>
-          </li>
-        ))}
-      </ul>
-    </div>
+        <section className="card" aria-labelledby="form-title">
+          <h2 id="form-title">Ajouter une tâche</h2>
+          <p className="hint">Les champs marqués d'un astérisque (*) sont obligatoires.</p>
+
+          <form onSubmit={addTask} noValidate>
+            <div className="field">
+              <label htmlFor="volunteer">Nom du bénévole</label>
+              <input
+                id="volunteer"
+                type="text"
+                value={volunteer}
+                onChange={(e) => setVolunteer(e.target.value)}
+                autoComplete="name"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="title">
+                Titre de la tâche <span aria-hidden="true">*</span>
+              </label>
+              <input
+                id="title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                aria-required="true"
+                aria-invalid={formError ? 'true' : 'false'}
+                aria-describedby={formError ? 'form-error' : undefined}
+              />
+            </div>
+
+            {formError && (
+              <p id="form-error" className="message-error" role="alert">
+                {formError}
+              </p>
+            )}
+
+            <button type="submit" className="btn-primary">Ajouter la tâche</button>
+          </form>
+        </section>
+
+        <section aria-labelledby="list-title">
+          <h2 id="list-title">Liste des tâches</h2>
+
+          <fieldset className="filter">
+            <legend>Afficher</legend>
+            {FILTERS.map((f) => (
+              <label key={f.value} className="filter-option">
+                <input
+                  type="radio"
+                  name="filter"
+                  value={f.value}
+                  checked={filter === f.value}
+                  onChange={() => setFilter(f.value)}
+                />
+                {f.label} ({counts[f.value]})
+              </label>
+            ))}
+          </fieldset>
+
+          {/* Annoncé par les lecteurs d'écran quand le filtre change */}
+          <p className="result-count" role="status">
+            {visibleTasks.length} tâche{visibleTasks.length > 1 ? 's' : ''} affichée
+            {visibleTasks.length > 1 ? 's' : ''}
+          </p>
+
+          {visibleTasks.length === 0 ? (
+            <p className="empty">{emptyMessages[filter]}</p>
+          ) : (
+            <ul className="task-list">
+              {visibleTasks.map((task) => (
+                <li key={task.id} className={`task ${task.complété ? 'done' : ''}`}>
+                  <input
+                    type="checkbox"
+                    id={`task-${task.id}`}
+                    checked={task.complété}
+                    onChange={() => toggleTask(task)}
+                  />
+                  <label htmlFor={`task-${task.id}`} className="task-label">
+                    <span className="task-title">{task.titre}</span>
+                    {task.benevole && (
+                      <span className="task-volunteer">Bénévole : {task.benevole}</span>
+                    )}
+                    {task.complété && <span className="sr-only"> (terminée)</span>}
+                  </label>
+                  <button
+                    type="button"
+                    className="btn-danger"
+                    onClick={() => deleteTask(task.id)}
+                    aria-label={`Supprimer la tâche ${task.titre}`}
+                  >
+                    Supprimer
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </main>
+    </>
   )
 }
 

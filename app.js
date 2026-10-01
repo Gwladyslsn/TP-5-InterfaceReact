@@ -99,6 +99,21 @@ app.patch('/tasks/:id', async (req, res) => {
     });
 });
 
+// Benevoles
+
+app.post('/benevoles', async (req, res) => {
+    const { nom_benevole } = req.body;
+    const result = await pool.query(
+        'INSERT INTO benevole (nom_benevole) VALUES ($1) RETURNING id_benevole AS id, nom_benevole AS nom',
+        [nom_benevole]
+    );
+
+    res.status(201).json({
+        message: 'Post ok',
+        task: result.rows[0]
+    });
+});
+
 app.listen(port, () => {
     console.log(`serveur sur http://localhost:${port}`);
 });
